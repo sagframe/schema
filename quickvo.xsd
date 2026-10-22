@@ -273,6 +273,9 @@
 						<xsd:attribute name="include-mpp-table" type="xsd:boolean">
 							<xsd:annotation><xsd:documentation><![CDATA[Whether to emit @MppTable engine metadata for ClickHouse/Doris/StarRocks (default true); set false for old sqltoy versions. Preferred over the property form.]]></xsd:documentation></xsd:annotation>
 						</xsd:attribute>
+						<xsd:attribute name="fail-on-empty" type="xsd:boolean" default="true">
+							<xsd:annotation><xsd:documentation><![CDATA[Whether a task whose include regex matches no tables should fail the build (default true, new in 2.0.4), preventing silent zero-output builds; set false when an empty task is expected. Preferred over the property form.]]></xsd:documentation></xsd:annotation>
+						</xsd:attribute>
 						<xsd:attribute name="log-language">
 							<xsd:annotation>
 								<xsd:documentation><![CDATA[
@@ -444,13 +447,15 @@
 				<!-- parent-child cascade configuration -->
 				<xsd:element name="cascade" maxOccurs="1">
 					<xsd:annotation>
-						<xsd:documentation><![CDATA[
+					<xsd:documentation><![CDATA[
 	Parent-child cascade: @OneToMany relations are generated automatically when a primary key is referenced by other tables' foreign keys.
-	Normally no configuration is needed (the fk constraint alone triggers generation); table entries here refine child-table behavior:
+	Normally no configuration is needed (the fk constraint alone triggers generation); delete=true is derived from the fk's
+	ON DELETE rule and emitted only when the constraint declares ON DELETE CASCADE (mirroring database behavior, consistent across drivers).
+	Table entries here refine child-table behavior:
 	update-cascade=delete (cascade delete existing rows) or an SQL fragment (e.g. ENABLED=0 to invalidate),
 	load=extra condition for cascade loading (e.g. STATUS=1), orderBy=sort order for cascade loading.
 	Note: configure on the parent side only; child tables are matched by table name; tables without fk constraints produce no cascade
-						]]></xsd:documentation>
+							]]></xsd:documentation>
 					</xsd:annotation>
 					<xsd:complexType>
 						<xsd:sequence minOccurs="0" maxOccurs="unbounded">
@@ -460,7 +465,7 @@
 										<xsd:annotation><xsd:documentation><![CDATA[Child table name]]></xsd:documentation></xsd:annotation>
 									</xsd:attribute>
 									<xsd:attribute name="delete" type="xsd:boolean">
-										<xsd:annotation><xsd:documentation><![CDATA[Whether sqltoy cascade-deletes child rows when the parent is deleted (emits delete=true on @OneToMany); defaults to true when this table entry matches, set false to disable]]></xsd:documentation></xsd:annotation>
+										<xsd:annotation><xsd:documentation><![CDATA[Cascade-delete child rows when the parent is deleted (emits delete=true on @OneToMany). When omitted, the foreign key's ON DELETE action decides (only ON DELETE CASCADE emits delete=true); set true/false to override the FK explicitly.]]></xsd:documentation></xsd:annotation>
 									</xsd:attribute>
 									<xsd:attribute name="update-cascade" type="xsd:string">
 										<xsd:annotation><xsd:documentation><![CDATA[How existing child rows are handled on parent update: delete or an SQL fragment (e.g. ENABLED=0)]]></xsd:documentation></xsd:annotation>
